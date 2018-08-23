@@ -30,7 +30,7 @@ $RECYCLE.BIN/
 
 # Thumbnails
 ._*
-*.o
+**/*.o
 .swp
 
 # Files that might appear on external disk
