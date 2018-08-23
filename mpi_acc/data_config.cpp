@@ -116,13 +116,13 @@ void DataConfig::InitConvolveShape()
                             rr = std::cos(r2 / (w * fScale));
                             ri = std::sin(r2 / (w * fScale));
                             convolve_shape[cind] =
-                                static_cast<std::complex<double> >(rr, ri);
+                                static_cast<std::complex<double>>(rr, ri);
                         }
                         else
                         {
                             rr = std::exp(-r2);
                             convolve_shape[cind] =
-                                static_cast<std::complex<double> >(rr);
+                                static_cast<std::complex<double>>(rr);
                         }
                     }
                 }
