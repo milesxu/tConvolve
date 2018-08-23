@@ -30,7 +30,7 @@ CXX=mpic++
 CFLAGS=-O3 -pg -ta=tesla:cc70,manage -Minfo=accel
 
 EXENAME = tConvolve
-OBJS = tConvolveMPI.o Stopwatch.o Benchmark.o
+OBJS = t_convolve.o stop_watch.o data_config.o main.o
 
 all:		$(EXENAME)
 
