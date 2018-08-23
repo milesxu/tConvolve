@@ -25,6 +25,7 @@ class DataConfig
 
     size_t n_samples;
     size_t sub_samples;
+    size_t size_samples;
     size_t n_channels;
     size_t g_size;
     size_t base_line;
@@ -45,4 +46,3 @@ class DataConfig
 };
 
 #endif
-

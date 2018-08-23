@@ -73,5 +73,7 @@ int main(int argc, char *argv[])
         delete[] rand_buf;
     }
     config->RunGrid();
+    MPI_Reduce(config->grid, config->grid0, config->g_size * config->g_size,
+               MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_COMM_WORLD);
     delete config;
 }

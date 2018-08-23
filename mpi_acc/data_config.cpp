@@ -27,12 +27,12 @@ void DataConfig::InitArray(size_t len, double *randNum)
     u = new double[len];
     v = new double[len];
     w = new double[len];
-    samples = new Sample[len * n_channels];
+    size_samples = len * n_channels;
+    samples = new Sample[size_samples];
     auto grid_len = g_size * g_size;
     grid = new std::complex<double>[grid_len];
     grid0 = new std::complex<double>[grid_len];
     freq = new double[n_channels];
-    size_t size_samples = len * n_channels;
 #pragma acc enter data create(u [0:len], v [0:len], w [0:len],             \
                               samples [0:size_samples], grid [0:grid_len], \
                               grid0 [0:grid_len])
@@ -192,29 +192,29 @@ void DataConfig::InitConvolveOffset()
 
 void DataConfig::RunGrid()
 {
-    for (int dind = 0; dind < int(samples.size()); ++dind)
+#pragma acc parallel
+    for (auto dind = 0; dind < size_samples; ++dind)
     {
         // The actual grid point from which we offset
-        int gind = samples[dind].iu + gSize * samples[dind].iv - support;
+        auto gind = samples[dind].iu + g_size * samples[dind].iv - support;
 
         // The Convoluton function point from which we offset
         int cind = samples[dind].cOffset;
 
-        for (int suppv = 0; suppv < sSize; suppv++)
+        for (auto suppv = 0; suppv < s_size; suppv++)
         {
-            Value *gptr = &grid[gind];
-            const Value *cptr = &C[cind];
-            const Value d = samples[dind].data;
-            for (int suppu = 0; suppu < sSize; suppu++)
+            std::complex<double> *gptr = &grid[gind];
+            const std::complex<double> *cptr = &convolve_shape[cind];
+            const std::complex<double> d = samples[dind].data;
+            for (int suppu = 0; suppu < s_size; suppu++)
             {
                 *(gptr++) += d * (*(cptr++));
             }
 
-            gind += gSize;
-            cind += sSize;
+            gind += g_size;
+            cind += s_size;
         }
     }
-    MPI_Reduce(grid, grid0, gSize * gSize, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, comm);
 }
 
 DataConfig::~DataConfig()
