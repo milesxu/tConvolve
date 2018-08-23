@@ -32,8 +32,9 @@ void DataConfig::InitArray(size_t len, double *randNum)
     grid = new std::complex<double>[grid_len];
     grid0 = new std::complex<double>[grid_len];
     freq = new double[n_channels];
+    size_t size_samples = len * n_channels;
 #pragma acc enter data create(u [0:len], v [0:len], w [0:len],                 \
-                              samples [0:len * n_channels], grid [0:grid_len], \
+                              samples [0:size_samples], grid [0:grid_len], \
                               grid0 [0:grid_len])
 #pragma acc parallel copyin(randNum [0:len])
     {
@@ -64,16 +65,15 @@ void DataConfig::InitArray(size_t len, double *randNum)
         {
             freq[i] = (1.4e9 - 2.0e5 * i / n_channels) / 2.998e8;
         }
-
+    }
         InitConvolveShape();
         InitConvolveOffset();
-    }
 }
 
 void DataConfig::InitConvolveShape()
 {
     support = static_cast<int>(
-        1.5 * sqrt(std::abs(double(base_line)) * static_cast<double>(cell_size) * freq[0]) / cell_size);
+        1.5 * std::sqrt(std::abs(double(base_line)) * static_cast<double>(cell_size) * freq[0]) / cell_size);
     over_sample = 8;
     w_cell_size = 2 * base_line * freq[0] / w_size;
     s_size = 2 * support + 1;
@@ -82,67 +82,74 @@ void DataConfig::InitConvolveShape()
     convolve_shape = new std::complex<double>[cs_len];
 
 #pragma acc enter data create(convolve_shape [0:cs_len])
-
-    double rr, ri;
-    for (int k = 0; k < w_size; k++)
-    {
-        double w = double(k - w_size / 2);
-        double fScale = sqrt(std::abs(w) * w_cell_size * freq[0]) / cell_size;
-
-        for (int osj = 0; osj < over_sample; osj++)
+#pragma acc parallel
+{
+        double rr, ri;
+        for (int k = 0; k < w_size; k++)
         {
-            for (int osi = 0; osi < over_sample; osi++)
+            double w = double(k - w_size / 2);
+            double fScale = std::sqrt(std::abs(w) * w_cell_size * freq[0]) / cell_size;
+
+            for (int osj = 0; osj < over_sample; osj++)
             {
-                for (int j = 0; j < s_size; j++)
+                for (int osi = 0; osi < over_sample; osi++)
                 {
-                    double j2 = std::pow(
-                        (double(j - cCenter) + double(osj) / double(over_sample)),
-                        2);
-
-                    for (int i = 0; i < s_size; i++)
+                    for (int j = 0; j < s_size; j++)
                     {
-                        double i2 = std::pow(
-                            (double(i - cCenter) + double(osi) / double(over_sample)),
-                            2);
-                        double r2 = j2 + i2 + sqrt(j2 * i2);
-                        long int cind =
-                            i + s_size *
-                                    (j + s_size *
-                                             (osi + over_sample *
-                                                        (osj + over_sample * k)));
+                        double j2 = 
+                            (double(j - cCenter) + double(osj) / double(over_sample));
+                        j2 *= j2;
 
-                        if (w != 0.0)
+                        for (int i = 0; i < s_size; i++)
                         {
-                            rr = std::cos(r2 / (w * fScale));
-                            ri = std::sin(r2 / (w * fScale));
-                            convolve_shape[cind] =
-                                static_cast<std::complex<double> >(rr, ri);
-                        }
-                        else
-                        {
-                            rr = std::exp(-r2);
-                            convolve_shape[cind] =
-                                static_cast<std::complex<double> >(rr);
+                            double i2 = 
+                                (double(i - cCenter) + double(osi) / double(over_sample));
+                            i2 *= i2;
+                            double r2 = j2 + i2 + std::sqrt(j2 * i2);
+                            long int cind =
+                                i + s_size *
+                                        (j + s_size *
+                                                (osi + over_sample *
+                                                            (osj + over_sample * k)));
+
+                            if (w != 0.0)
+                            {
+                                rr = std::cos(r2 / (w * fScale));
+                                ri = std::sin(r2 / (w * fScale));
+                                convolve_shape[cind] = std::complex<double>(rr, ri);
+                            }
+                            else
+                            {
+                                rr = std::exp(-r2);
+                                convolve_shape[cind] =
+                                    static_cast<std::complex<double> >(rr);
+                            }
                         }
                     }
                 }
             }
         }
-    }
-    double sum_shape = 0.0;
-#pragma acc parallel loop reduction(+ \
-                                    : sum_shape)
-    for (auto i = 0; i < cs_len; ++i)
-        sum_shape += std::abs(convolve_shape[i]);
+        double sum_shape = 0.0;
+#pragma acc loop reduction(+ : sum_shape)
+        for (auto i = 0; i < cs_len; ++i)
+        {
+            double temp_r = convolve_shape[i].real();
+            double temp_i = convolve_shape[i].imag();
+            double temp = std::sqrt(temp_r * temp_r + temp_i * temp_i);
+            //sum_shape += std::abs(convolve_shape[i]);
+            sum_shape += temp;
+        }
 
-    for (auto i = 0; i < cs_len; ++i)
-    {
-        convolve_shape[i] *= (w_size * over_sample * over_sample / sum_shape);
+        for (auto i = 0; i < cs_len; ++i)
+        {
+            convolve_shape[i] *= (w_size * over_sample * over_sample / sum_shape);
+        }
     }
 }
 
 void DataConfig::InitConvolveOffset()
 {
+    #pragma acc parallel
     for (int i = 0; i < sub_samples; i++)
     {
         for (int chan = 0; chan < n_channels; chan++)

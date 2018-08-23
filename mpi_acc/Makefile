@@ -27,18 +27,22 @@
 CXX=mpic++
 #CXX=pgc++
 #CFLAGS=-O2 -openmp -mkl=sequential -DUSE_BLAS -wd2568 -xHost
-CFLAGS=-O3 -std=c++11 -pg -ta=tesla:cc70,manage -Minfo=accel -c++11
+CFLAGS=-std=c++11 -O3 -pg -ta=tesla:cc70,manage -Minfo=accel -std=c++11 
 
 EXENAME = tConvolve
-OBJS = t_convolve.o stop_watch.o data_config.o main.o
+OBJS = t_convolve.o stop_watch.o data_config.o 
+MAIN_OBJS = main.o
 
 all:		$(EXENAME)
 
-%.o:		%.cc %.h
+main.o:     main.cpp
 		$(CXX) $(CFLAGS) -c $<
 
-$(EXENAME):	$(OBJS)
-		$(CXX) $(CFLAGS) -o $(EXENAME) $(OBJS)
+%.o:		%.cpp %.h
+		$(CXX) $(CFLAGS) -c $<
+
+$(EXENAME):	$(OBJS) $(MAIN_OBJS)
+		$(CXX) $(CFLAGS) -o $(EXENAME) $(OBJS) $(MAIN_OBJS)
 
 clean:
 		rm -f $(EXENAME) *.o
