@@ -1,0 +1,15 @@
+{
+    "configurations": [{
+        "name": "Linux",
+        "includePath": [
+            "${workspaceFolder}/**",
+            "/opt/pgi/linux86-64/18.4/mpi/openmpi/include/"
+        ],
+        "defines": [],
+        "compilerPath": "/opt/cuda/bin/gcc",
+        "cStandard": "c11",
+        "cppStandard": "c++17",
+        "intelliSenseMode": "clang-x64"
+    }],
+    "version": 4
+}
