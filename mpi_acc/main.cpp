@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     DataConfig *config;
-    size_t input[5];
+    size_t input[4];
     if (rank == 0)
     {
         input[0] = 3200000; //n samples
@@ -72,5 +72,6 @@ int main(int argc, char *argv[])
         config->InitArray(nl, rand_buf);
         delete[] rand_buf;
     }
+    config->RunGrid();
     delete config;
 }
