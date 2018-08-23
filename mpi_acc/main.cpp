@@ -72,5 +72,6 @@ int main(int argc, char *argv[])
         config->InitArray(nl, rand_buf);
         delete[] rand_buf;
     }
+    config->RunGrid();
     delete config;
 }

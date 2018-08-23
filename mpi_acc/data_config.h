@@ -21,6 +21,7 @@ class DataConfig
     void InitArray(size_t len, double *randNum);
     void InitConvolveShape();
     void InitConvolveOffset();
+    void RunGrid();
 
     size_t n_samples;
     size_t sub_samples;

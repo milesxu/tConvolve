@@ -189,6 +189,30 @@ void DataConfig::InitConvolveOffset()
     }
 }
 
+void DataConfig::RunGrid()
+{
+for (int dind = 0; dind < int(samples.size()); ++dind) {
+        // The actual grid point from which we offset
+        int gind = samples[dind].iu + gSize * samples[dind].iv - support;
+
+        // The Convoluton function point from which we offset
+        int cind = samples[dind].cOffset;
+
+        for (int suppv = 0; suppv < sSize; suppv++) {
+            Value* gptr = &grid[gind];
+            const Value* cptr = &C[cind];
+            const Value d = samples[dind].data;
+            for (int suppu = 0; suppu < sSize; suppu++) {
+                *(gptr++) += d * (*(cptr++));
+            }
+
+            gind += gSize;
+            cind += sSize;
+        }
+    }
+    MPI_Reduce(grid,grid0,gSize*gSize,MPI_DOUBLE_COMPLEX,MPI_SUM,0,comm); 
+}
+
 DataConfig::~DataConfig()
 {
     if (u)
