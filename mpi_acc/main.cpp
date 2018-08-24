@@ -12,6 +12,8 @@ const size_t seed = 7715;
 
 int main(int argc, char *argv[])
 {
+    std::cout << "BLOCK SIZE --------- " << BLOCK_SIZE(0, 2, 3200000) << std::endl;
+    std::cout << "BLOCK SIZE --------- " << BLOCK_SIZE(1, 2, 3200000) << std::endl;
     auto rc = MPI_Init(&argc, &argv);
     if (rc != MPI_SUCCESS)
     {
@@ -44,35 +46,41 @@ int main(int argc, char *argv[])
         {
             rand_num[i] = dist(engine);
         }
-        auto nl = BLOCK_SIZE(0, num_tasks, config->n_samples);
-        auto temp_ptr = rand_num + nl;
+        std::cout << "total samples- ------------ " << total_samples << std::endl;
+        auto nl = BLOCK_SIZE(0, num_tasks, input[0]);
+        auto temp_ptr = rand_num + nl * 4;
         for (auto i = 1; i < num_tasks; ++i)
         {
-            auto incr = BLOCK_SIZE(i, num_tasks, config->n_samples);
-            if (i == num_tasks - 1)
-                incr += 1;
+            auto incr = BLOCK_SIZE(i, num_tasks, input[0]) * 4;
+            /*if (i == num_tasks - 1)
+                incr += 1;*/
             MPI_Send(temp_ptr, incr, MPI_DOUBLE_PRECISION, i, 0, MPI_COMM_WORLD);
             temp_ptr += incr;
         }
+        std::cout << "zero length:----------- " << nl << std::endl;
         config->InitArray(nl, rand_num);
         delete[] rand_num;
     }
     else
     {
-        auto ns = BLOCK_SIZE(rank, num_tasks, config->n_samples);
+        auto ns = BLOCK_SIZE(rank, num_tasks, input[0]);
+        std::cout << "n_samples---------- " << input[0] << std::endl;
         size_t nl = ns;
-        if (rank == num_tasks - 1)
+        /*if (rank == num_tasks - 1)
         {
             nl += 1;
-        }
-        double *rand_buf = new double[nl];
+        }*/
+        double *rand_buf = new double[nl * 4];
         MPI_Status status;
-        MPI_Recv(rand_buf, nl, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD,
+        MPI_Recv(rand_buf, nl * 4, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD,
                  &status);
+        std::cout << "data received successfully!" << std::endl;
+        std::cout << "other length:--------------- " << nl << std::endl;
         config->InitArray(nl, rand_buf);
+        std::cout << "data initialized successfully!" << std::endl;
         delete[] rand_buf;
     }
-    config->RunGrid();
+    //config->RunGrid();
     MPI_Reduce(config->grid, config->grid0, config->g_size * config->g_size,
                MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_COMM_WORLD);
     delete config;
